@@ -1,0 +1,396 @@
+<title>Boss Strike Rework</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a headline, one interactive pool grid (10 battles x 5 wave slots) with a path through it, then the drawn formation as large wave renders and the numbers. */
+:root {
+  --bg: #E5E9E3;
+  --surface: #F3F5F0;
+  --ink: #161C18;
+  --muted: #56615B;
+  --line: #C2CAC1;
+  --asphalt: #262A2E;
+  --pick: #17707F;
+  --pick-ink: #FFFFFF;
+  --hot: #C2410C;
+  --hot-ink: #FFFFFF;
+  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --f-body: "Barlow", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101411; --surface: #1A201B; --ink: #E6ECE5; --muted: #98A59C; --line: #2D372F;
+    --pick: #4DB8CB; --pick-ink: #06222A; --hot: #FB923C; --hot-ink: #2A1203;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101411; --surface: #1A201B; --ink: #E6ECE5; --muted: #98A59C; --line: #2D372F;
+  --pick: #4DB8CB; --pick-ink: #06222A; --hot: #FB923C; --hot-ink: #2A1203;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.5; padding-inline: 16px; padding-block: 32px 56px; }
+.page { max-width: 1120px; margin-inline: auto; display: flex; flex-direction: column; gap: 44px; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 700; text-transform: uppercase; letter-spacing: .02em; line-height: 1; margin: 0; text-wrap: balance; }
+p { margin: 0; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+/* hero */
+.hero { display: grid; gap: 28px; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: end; }
+.hero h1 { font-size: clamp(44px, 8vw, 88px); margin-block: 10px 14px; }
+.hero h1 em { font-style: normal; color: var(--pick); }
+.hero .lede { max-width: 52ch; color: var(--muted); font-size: 18px; }
+.rule { display: grid; gap: 10px; }
+.rule div { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 14px; align-items: baseline; padding-block: 10px; border-top: 1px solid var(--line); }
+.rule b { font-family: var(--f-display); font-size: 38px; line-height: 1; }
+.rule .hot b { color: var(--hot); }
+.rule span { color: var(--muted); }
+.rule span strong { color: var(--ink); font-weight: 600; }
+
+/* controls */
+.bar { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; justify-content: space-between; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--surface); }
+.seg button { font: 600 15px var(--f-body); color: var(--muted); background: transparent; border: 0; padding: 10px 16px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.go { font: 700 20px var(--f-display); letter-spacing: .05em; text-transform: uppercase; background: var(--pick); color: var(--pick-ink); border: 0; border-radius: 6px; padding: 10px 22px; cursor: pointer; }
+.go:hover { filter: brightness(1.08); }
+button:focus-visible { outline: 3px solid var(--pick); outline-offset: 2px; }
+.roll { font-family: var(--f-mono); font-size: 13px; color: var(--muted); }
+.roll b { color: var(--ink); font-weight: 500; }
+.roll .yes { color: var(--hot); }
+
+/* pool grid */
+.scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.pool { position: relative; min-width: 860px; padding: 14px; display: grid; grid-template-columns: 40px repeat(5, minmax(0, 1fr)); gap: 8px; align-items: stretch; }
+.colhead { font-family: var(--f-display); font-size: 20px; text-transform: uppercase; letter-spacing: .04em; padding-bottom: 2px; display: flex; justify-content: space-between; align-items: baseline; }
+.colhead small { font-family: var(--f-mono); font-size: 11px; color: var(--muted); letter-spacing: 0; }
+.colhead.hot { color: var(--hot); }
+.rowlab { font-family: var(--f-mono); font-size: 12px; color: var(--muted); display: flex; align-items: center; }
+.cell { position: relative; padding: 0; border: 2px solid transparent; border-radius: 6px; background: none; cursor: pointer; display: block; opacity: .55; transition: opacity .15s; min-width: 0; }
+.cell:hover { opacity: 1; }
+.cell[aria-pressed="true"] { opacity: 1; border-color: var(--pick); }
+.cell.hot[aria-pressed="true"] { border-color: var(--hot); }
+.cell .chip { position: absolute; right: 4px; bottom: 4px; }
+.empty { border: 1px dashed var(--line); border-radius: 6px; display: grid; place-items: center; color: var(--muted); font-family: var(--f-mono); font-size: 12px; min-height: 40px; }
+.path { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+
+/* wave render: wiki map + icons at the wiki's own pixel positions, in percentages */
+.wave { position: relative; aspect-ratio: 643 / 415; overflow: hidden; border-radius: 4px; background: var(--asphalt); width: 100%; }
+.wave > img { position: absolute; height: auto; display: block; max-width: none; }
+.chip { font-family: var(--f-mono); font-size: 11px; line-height: 1; padding: 4px 6px; border-radius: 3px; background: rgba(15, 18, 16, .82); color: #F2F5EF; font-variant-numeric: tabular-nums; }
+
+/* drawn formation */
+.draw { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.slot { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.slot header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slot h3 { font-size: 26px; }
+.slot.hot h3 { color: var(--hot); }
+.slot .from { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.slot .wave { box-shadow: 0 0 0 2px var(--pick); }
+.slot.hot .wave { box-shadow: 0 0 0 2px var(--hot); }
+.slot .units { font-size: 13px; color: var(--muted); }
+.slot.off { opacity: .55; }
+.slot.off .wave { box-shadow: none; filter: grayscale(1) brightness(.7); }
+.slot .offnote { font-size: 13px; color: var(--muted); }
+.total { display: flex; flex-wrap: wrap; gap: 6px 24px; align-items: baseline; padding-top: 14px; border-top: 1px solid var(--line); }
+.total b { font-family: var(--f-display); font-size: 34px; }
+.total span { color: var(--muted); }
+
+/* numbers */
+.nums { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.num { padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); display: flex; flex-direction: column; gap: 6px; }
+.num b { font-family: var(--f-display); font-size: 52px; line-height: 1; font-variant-numeric: tabular-nums; }
+.num.hot b { color: var(--hot); }
+.num h3 { font-size: 18px; letter-spacing: .06em; }
+.num p { color: var(--muted); font-size: 15px; }
+h2 { font-size: 34px; margin-bottom: 14px; }
+footer { color: var(--muted); font-size: 13px; }
+footer a { color: inherit; }
+@media (max-width: 760px) {
+  .hero { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { .cell { transition: none; } }
+.compare { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); } .crow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); } .crow + .crow { border-top: 1px solid var(--line); } .side { padding: 22px 24px; display: flex; flex-direction: column; gap: 6px; min-width: 0; } .side.after { border-left: 1px solid var(--line); } .side .tag { font-family: var(--f-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); } .side.after .tag { color: var(--pick); } .side b { font-family: var(--f-display); font-size: 64px; line-height: 1; font-variant-numeric: tabular-nums; } .side.after b { color: var(--pick); } .side .unit { color: var(--muted); } .side p { max-width: 56ch; } .side p.big { font-family: var(--f-display); font-size: 30px; line-height: 1.1; text-transform: uppercase; letter-spacing: .02em; color: var(--muted); } .byline { margin-top: 14px; font-family: var(--f-mono); font-size: 13px; color: var(--muted); } .byline b { color: var(--ink); font-weight: 500; } .source { margin-top: -28px; font-size: 14px; color: var(--ink); } @media (max-width: 760px) { .crow { grid-template-columns: minmax(0, 1fr); } .side.after { border-left: 0; border-top: 1px solid var(--line); } }.crow.head .side { padding-block: 12px; } .crow.head .tag { font-size: 14px; } @media (max-width: 760px) { .crow.head { display: none; } .side + .side.after { border-top: 1px solid var(--line); } .crow:not(.head) .side:not(.after)::before { content: "Before"; font-family: var(--f-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); } .crow:not(.head) .side.after::before { content: "After"; font-family: var(--f-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--pick); } }.hl { color: var(--pick); font-weight: 600; background: color-mix(in srgb, var(--pick) 16%, transparent); padding: 1px 5px; border-radius: 3px; } .side p.callout { margin-top: 10px; color: var(--hot); font-family: var(--f-display); font-size: 26px; line-height: 1.1; text-transform: uppercase; letter-spacing: .02em; font-weight: 700; }.byline { margin-top: 6px; }.lede strong { color: var(--ink); font-weight: 600; } .lede strong em { font-style: normal; color: var(--pick); }.rework { display: flex; flex-direction: column; gap: 36px; } .rework > h2 { margin-bottom: 0; padding-top: 22px; border-top: 1px solid var(--line); } h3.sub { font-size: 26px; margin-bottom: 14px; } .rework .hero { align-items: start; } .rework .lede { margin: 0; }.pagehead h1 { font-size: clamp(44px, 8vw, 88px); margin-block: 10px 0; } .pagehead h1 em { font-style: normal; color: var(--pick); }.source { margin-top: 0; }</style>
+
+<main class="page">
+  <header class="pagehead">
+      <div class="eyebrow">Boss Strike 3 (Legacy BS 15) · Infected Troops · levels 61-65</div>
+      <p class="byline">By <b>[HSC] MaxSally</b></p>
+      <h1>Boss Strike <em>Rework</em></h1>
+    </header>
+
+  <section>
+    <h2>What changes</h2>
+    <div class="compare">
+      <div class="crow head"><div class="side"><span class="tag">Before</span></div><div class="side after"><span class="tag">After</span></div></div>
+      <div class="crow">
+        <div class="side"><b>10</b><span class="unit">formations</span></div>
+        <div class="side after"><b>20,000</b><span class="unit">formations</span></div>
+      </div>
+      <div class="crow">
+        <div class="side"><p class="big">No daily boosted values</p></div>
+        <div class="side after"><p>Players can select <span class="hl">10 battles each day</span> to receive boosted values. Each battle can be boosted to <span class="hl">×3 values</span>. Before each battle, player can view all the waves and toggle whether the boost should apply.</p><p class="callout">A formation with the challenge wave can be worth almost 30,000 points.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="rework">
+    <h2>Formation Rework</h2>
+    <div class="hero">
+      <div><p class="lede"><strong>Every wave is <em>drawn</em>, not scripted.</strong> A formation used to be one of ten fixed battles, played from start to finish. Now, it is built wave by wave, so wave 2 of one battle can follow wave 1 of another.</p></div>
+      <div class="rule">
+      <div><b>×4</b><span>Waves 1 to 4 are each drawn from <strong>all 10 battles' matching wave</strong>, independently and uniformly.</span></div>
+      <div class="hot"><b>10%</b><span>Chance of a <strong>fifth, challenge wave</strong> appeared after wave 4. Only 1 challenge wave in Battle 10 to sample from.</span></div>
+    </div>
+    </div>
+
+  <div>
+    <h3 class="sub">The pool</h3>
+    <div class="bar" style="margin-bottom:14px">
+      <div class="seg" role="group" aria-label="Draw mode">
+        <button id="m-fixed" type="button" aria-pressed="false">Before: one fixed battle</button>
+        <button id="m-draw" type="button" aria-pressed="true">Now: each wave drawn</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center">
+        <span class="roll" id="roll"></span>
+        <button class="go" id="go" type="button">Draw formation</button>
+      </div>
+    </div>
+    <div class="scroll"><div class="pool" id="pool"></div></div>
+    <p class="eyebrow" style="margin-top:10px">Click any wave to pick it for that slot. Dimmed waves were not drawn.</p>
+  </div>
+
+  <div>
+    <h3 class="sub">Formation fought</h3>
+    <div class="draw" id="draw"></div>
+    <div class="total" id="total"></div>
+  </div>
+  </section>
+  <footer class="source">Formations and points values were obtained from Battle Nations Mirahaze wiki. All details are subject to change.</footer>
+</main>
+
+<script>
+const ICONS=['S_trooper_zombie_spitter_super_front.png','S_trooper_zombie_cannon_d_front.png','S_trooper_zombie_spider_d_front.png','S_trooper_zombie_tank_b_front.png','S_trooper_zombie_spitter_d_front.png','S_trooper_zombie_tank_super_front.png','S_trooper_zombie_ninja_super_front.png','S_raptor_zombie_d_front.png','Air_s_trooper_zombie_d_front.png','Def_barricade_concreteWall_front.png','NatBarricade_debris.png','S_trooper_zombie_ninja_d_front.png','S_trooper_zombie_c_front.png','S_bigfoot_zombie_super_player_front.png'];
+const TITLES=['Apex Bullfrog (Level 50)','Arch. Cannoneer (Level 55)','Arch. Crawler (Level 55)','Arch. Colossus (Level 40)','Arch. Bullfrog (Level 55)','Apex Colossus (Level 50)','Apex Stalker (Level 50)','Arch. Shredder (Level 55)','Arch. Hunter (Level 55)','Wall (Level 36)','Debris (Level 10)','Arch. Stalker (Level 55)','Apex Colossus (Level 60)','Arch. Creeper (Level 55)','Apex Bullfrog (Level 60)','Apex Mauler (Level 55)','Apex Stalker (Level 60)'];
+const WAVES=[
+{b:1,w:1,pts:798,u:[[0,311,118,108,87,0],[1,152,117,77,78,1],[1,422,162,77,78,1],[2,210,162,130,93,2],[3,40,158,114,96,3],[4,507,222,99,70,4],[1,332,207,77,78,1],[5,128,194,116,111,5],[6,409,251,112,83,6],[7,218,238,142,95,7],[1,512,297,77,78,1],[8,323,231,116,149,8],[9,381,337,134,105,9]]},
+{b:1,w:2,pts:1434,u:[[4,326,132,99,70,4],[2,120,117,130,93,2],[2,390,162,130,93,2],[1,242,162,77,78,1],[7,38,148,142,95,7],[6,499,206,112,83,6],[10,295,188,140,117,10],[3,130,203,114,96,3],[1,422,252,77,78,1],[7,218,238,142,95,7],[0,491,298,108,87,0],[3,310,293,114,96,3],[2,390,342,130,93,2]]},
+{b:1,w:3,pts:1656,u:[[4,326,132,99,70,4],[11,143,133,112,69,11],[0,401,163,108,87,0],[8,233,96,116,149,8],[6,49,161,112,83,6],[4,507,222,99,70,4],[2,300,207,130,93,2],[9,111,202,134,105,9],[11,413,268,112,69,11],[3,220,248,114,96,3],[2,480,297,130,93,2],[10,295,278,140,117,10],[2,390,342,130,93,2]]},
+{b:1,w:4,pts:2520,u:[[2,300,117,130,93,2],[1,152,117,77,78,1],[4,416,177,99,70,4],[7,218,148,142,95,7],[7,38,148,142,95,7],[11,503,223,112,69,11],[9,291,202,134,105,9],[1,152,207,77,78,1],[11,413,268,112,69,11],[5,218,239,116,111,12],[1,512,297,77,78,1],[1,332,297,77,78,1],[7,398,328,142,95,7]]},
+{b:2,w:1,pts:766,u:[[12,318,116,85,80,13],[1,152,117,77,78,1],[2,390,162,130,93,2],[4,236,177,99,70,4],[5,38,149,116,111,5],[4,507,222,99,70,4],[8,323,141,116,149,8],[2,120,207,130,93,2],[11,413,268,112,69,11],[8,233,186,116,149,8],[9,471,292,134,105,9],[9,291,292,134,105,9],[5,398,329,116,111,12]]},
+{b:2,w:2,pts:1320,u:[[1,332,117,77,78,1],[2,120,117,130,93,2],[1,422,162,77,78,1],[11,233,178,112,69,11],[7,38,148,142,95,7],[6,499,206,112,83,6],[7,308,193,142,95,7],[3,130,203,114,96,3],[2,390,252,130,93,2],[10,205,233,140,117,10],[6,499,296,112,83,6],[7,398,328,142,95,7]]},
+{b:2,w:3,pts:1744,u:[[5,308,104,116,111,12],[7,128,103,142,95,7],[1,422,162,77,78,1],[2,210,162,130,93,2],[11,53,178,112,69,11],[2,480,207,130,93,2],[7,308,193,142,95,7],[7,128,193,142,95,7],[11,413,268,112,69,11],[9,201,247,134,105,9],[2,480,297,130,93,2],[9,291,292,134,105,9],[10,385,323,140,117,10]]},
+{b:2,w:4,pts:2730,u:[[6,319,116,112,83,6],[4,146,132,99,70,4],[2,390,162,130,93,2],[11,233,178,112,69,11],[0,41,163,108,87,0],[11,503,223,112,69,11],[3,310,203,114,96,3],[7,128,193,142,95,7],[1,422,252,77,78,1],[5,218,239,116,111,12],[1,512,297,77,78,1],[7,308,283,142,95,7],[9,381,337,134,105,9]]},
+{b:3,w:1,pts:780,u:[[4,326,132,99,70,4],[2,120,117,130,93,2],[6,409,161,112,83,6],[11,233,178,112,69,11],[6,49,161,112,83,6],[12,498,206,85,80,13],[5,308,194,116,111,5],[0,131,208,108,87,0],[1,422,252,77,78,1],[9,201,247,134,105,9],[2,480,297,130,93,2],[10,295,278,140,117,10],[7,398,328,142,95,7]]},
+{b:3,w:2,pts:1314,u:[[6,319,116,112,83,6],[1,152,117,77,78,1],[2,390,162,130,93,2],[11,233,178,112,69,11],[10,25,143,140,117,10],[7,489,193,142,95,7],[2,300,207,130,93,2],[4,146,222,99,70,4],[2,390,252,130,93,2],[1,242,252,77,78,1],[5,488,284,116,111,5],[7,308,283,142,95,7],[10,385,323,140,117,10]]},
+{b:3,w:3,pts:1880,u:[[2,300,117,130,93,2],[1,152,117,77,78,1],[0,401,163,108,87,0],[4,236,177,99,70,4],[3,40,158,114,96,3],[1,512,207,77,78,1],[11,323,223,112,69,11],[2,120,207,130,93,2],[11,413,268,112,69,11],[5,218,239,116,111,5],[8,503,231,116,149,8],[2,300,297,130,93,2],[8,413,276,116,149,8]]},
+{b:3,w:4,pts:2499,u:[[2,300,117,130,93,2],[1,152,117,77,78,1],[7,398,148,142,95,7],[11,233,178,112,69,11],[7,38,148,142,95,7],[1,512,207,77,78,1],[0,311,208,108,87,14],[7,128,193,142,95,7],[1,422,252,77,78,1],[9,201,247,134,105,9],[3,490,293,114,96,3],[1,332,297,77,78,1],[11,413,358,112,69,11]]},
+{b:4,w:1,pts:805,u:[[6,319,116,112,83,6],[0,131,118,108,87,0],[8,413,96,116,149,8],[2,210,162,130,93,2],[13,43,138,106,112,15],[0,491,208,108,87,0],[1,332,207,77,78,1],[1,152,207,77,78,1],[8,413,186,116,149,8],[10,205,233,140,117,10],[7,489,283,142,95,7],[4,326,312,99,70,4],[12,408,341,85,80,13]]},
+{b:4,w:2,pts:1356,u:[[11,323,133,112,69,11],[2,120,117,130,93,2],[0,401,163,108,87,0],[2,210,162,130,93,2],[2,29,162,130,93,2],[0,491,208,108,87,0],[2,300,207,130,93,2],[1,152,207,77,78,1],[1,422,252,77,78,1],[9,201,247,134,105,9],[7,489,283,142,95,7],[6,319,296,112,83,6],[11,413,358,112,69,11]]},
+{b:4,w:3,pts:1800,u:[[2,300,117,130,93,2],[4,146,132,99,70,4],[11,413,178,112,69,11],[11,233,178,112,69,11],[3,40,158,114,96,3],[4,507,222,99,70,4],[4,326,222,99,70,4],[7,128,193,142,95,7],[8,413,186,116,149,8],[3,220,248,114,96,3],[7,489,283,142,95,7],[9,291,292,134,105,9],[1,422,342,77,78,1]]},
+{b:4,w:4,pts:2467,u:[[2,300,117,130,93,2],[4,146,132,99,70,4],[2,390,162,130,93,2],[1,242,162,77,78,1],[1,62,162,77,78,1],[2,480,207,130,93,2],[6,319,206,112,83,16],[9,111,202,134,105,9],[11,413,268,112,69,11],[4,236,267,99,70,4],[3,490,293,114,96,3],[3,310,293,114,96,3],[2,390,342,130,93,2]]},
+{b:5,w:1,pts:777,u:[[1,332,117,77,78,1],[8,143,51,116,149,8],[0,401,163,108,87,0],[6,229,161,112,83,6],[4,56,177,99,70,4],[1,512,207,77,78,1],[2,300,207,130,93,2],[12,138,206,85,80,13],[9,381,247,134,105,9],[13,223,228,106,112,15],[2,480,297,130,93,2],[8,323,231,116,149,8],[3,400,338,114,96,3]]},
+{b:5,w:2,pts:1368,u:[[2,300,117,130,93,2],[5,128,104,116,111,5],[6,409,161,112,83,6],[1,242,162,77,78,1],[10,25,143,140,117,10],[4,507,222,99,70,4],[2,300,207,130,93,2],[7,128,193,142,95,7],[1,422,252,77,78,1],[2,210,252,130,93,2],[2,480,297,130,93,2],[8,323,231,116,149,8],[2,390,342,130,93,2]]},
+{b:5,w:3,pts:1856,u:[[4,326,132,99,70,4],[7,128,103,142,95,7],[11,413,178,112,69,11],[2,210,162,130,93,2],[4,56,177,99,70,4],[1,512,207,77,78,1],[3,310,203,114,96,3],[9,111,202,134,105,9],[1,422,252,77,78,1],[11,233,268,112,69,11],[11,503,313,112,69,11],[7,308,283,142,95,7],[5,398,329,116,111,5]]},
+{b:5,w:4,pts:2635,u:[[4,326,132,99,70,4],[5,128,104,116,111,5],[2,390,162,130,93,2],[2,210,162,130,93,2],[4,56,177,99,70,4],[2,480,207,130,93,2],[6,319,206,112,83,16],[10,115,188,140,117,10],[7,398,238,142,95,7],[7,218,238,142,95,7],[7,489,283,142,95,7],[9,291,292,134,105,9],[11,413,358,112,69,11]]},
+{b:6,w:1,pts:759,u:[[4,326,132,99,70,4],[1,152,117,77,78,1],[0,401,163,108,87,0],[0,221,163,108,87,0],[6,49,161,112,83,6],[6,499,206,112,83,6],[1,332,207,77,78,1],[10,115,188,140,117,10],[1,422,252,77,78,1],[5,218,239,116,111,5],[2,480,297,130,93,2],[9,291,292,134,105,9],[1,422,342,77,78,1]]},
+{b:6,w:2,pts:1332,u:[[2,300,117,130,93,2],[8,143,51,116,149,8],[1,422,162,77,78,1],[1,242,162,77,78,1],[7,38,148,142,95,7],[6,499,206,112,83,6],[1,332,207,77,78,1],[6,139,206,112,83,6],[3,400,248,114,96,3],[5,218,239,116,111,5],[1,512,297,77,78,1],[10,295,278,140,117,10],[8,413,276,116,149,8]]},
+{b:6,w:3,pts:1952,u:[[4,326,132,99,70,4],[1,152,117,77,78,1],[6,409,161,112,83,6],[7,218,148,142,95,7],[8,53,96,116,149,8],[1,512,207,77,78,1],[1,332,207,77,78,1],[1,152,207,77,78,1],[7,398,238,142,95,7],[7,218,238,142,95,7],[7,489,283,142,95,7],[7,308,283,142,95,7],[11,413,358,112,69,11]]},
+{b:6,w:4,pts:2383,u:[[4,326,132,99,70,4],[1,152,117,77,78,1],[0,401,163,108,87,14],[2,210,162,130,93,2],[2,29,162,130,93,2],[4,507,222,99,70,4],[0,311,208,108,87,0],[7,128,193,142,95,7],[1,422,252,77,78,1],[1,242,252,77,78,1],[6,499,296,112,83,6],[9,291,292,134,105,9],[10,385,323,140,117,10]]},
+{b:7,w:1,pts:819,u:[[11,323,133,112,69,11],[0,131,118,108,87,0],[6,409,161,112,83,6],[5,218,149,116,111,5],[12,47,161,85,80,13],[4,507,222,99,70,4],[1,332,207,77,78,1],[2,120,207,130,93,2],[2,390,252,130,93,2],[7,218,238,142,95,7],[3,490,293,114,96,3],[10,295,278,140,117,10],[1,422,342,77,78,1]]},
+{b:7,w:2,pts:1272,u:[[2,300,117,130,93,2],[0,131,118,108,87,0],[2,390,162,130,93,2],[2,210,162,130,93,2],[9,21,157,134,105,9],[2,480,207,130,93,2],[1,332,207,77,78,1],[8,143,141,116,149,8],[8,413,186,116,149,8],[6,229,251,112,83,6],[8,503,231,116,149,8],[11,323,313,112,69,11],[7,398,328,142,95,7]]},
+{b:7,w:3,pts:1944,u:[[4,326,132,99,70,4],[11,143,133,112,69,11],[1,422,162,77,78,1],[9,201,157,134,105,9],[9,21,157,134,105,9],[4,507,222,99,70,4],[2,300,207,130,93,2],[5,128,194,116,111,5],[3,400,248,114,96,3],[7,218,238,142,95,7],[7,489,283,142,95,7],[7,308,283,142,95,7],[5,398,329,116,111,5]]},
+{b:7,w:4,pts:2436,u:[[4,326,132,99,70,4],[1,422,162,77,78,1],[11,233,178,112,69,11],[10,25,143,140,117,10],[11,503,223,112,69,11],[6,319,206,112,83,16],[3,130,203,114,96,3],[2,390,252,130,93,2],[3,220,248,114,96,3],[4,507,312,99,70,4],[7,308,283,142,95,7],[7,398,328,142,95,7]]},
+{b:8,w:1,pts:822,u:[[4,326,132,99,70,4],[4,146,132,99,70,4],[2,390,162,130,93,2],[1,242,162,77,78,1],[12,47,161,85,80,13],[5,488,194,116,111,12],[7,308,193,142,95,7],[3,130,203,114,96,3],[1,422,252,77,78,1],[9,201,247,134,105,9],[2,480,297,130,93,2],[8,323,231,116,149,8],[2,390,342,130,93,2]]},
+{b:8,w:2,pts:1452,u:[[4,326,132,99,70,4],[2,120,117,130,93,2],[0,401,163,108,87,14],[0,221,163,108,87,0],[5,38,149,116,111,5],[4,507,222,99,70,4],[11,323,223,112,69,11],[10,115,188,140,117,10],[9,381,247,134,105,9],[6,229,251,112,83,6],[7,489,283,142,95,7],[12,318,296,85,80,13],[8,413,276,116,149,8]]},
+{b:8,w:3,pts:1792,u:[[8,323,51,116,149,8],[9,111,112,134,105,9],[2,390,162,130,93,2],[7,218,148,142,95,7],[0,41,163,108,87,0],[0,491,208,108,87,0],[2,300,207,130,93,2],[7,128,193,142,95,7],[7,398,238,142,95,7],[6,229,251,112,83,6],[10,475,278,140,117,10],[2,300,297,130,93,2],[1,422,342,77,78,1]]},
+{b:8,w:4,pts:2320,u:[[2,300,117,130,93,2],[2,120,117,130,93,2],[0,401,163,108,87,14],[4,236,177,99,70,4],[4,56,177,99,70,4],[11,503,223,112,69,11],[2,300,207,130,93,2],[1,152,207,77,78,1],[2,390,252,130,93,2],[9,201,247,134,105,9],[2,480,297,130,93,2],[10,295,278,140,117,10],[3,400,338,114,96,3]]},
+{b:9,w:1,pts:780,u:[[1,332,117,77,78,1],[1,152,117,77,78,1],[8,413,96,116,149,8],[1,242,162,77,78,1],[12,47,161,85,80,13],[2,480,207,130,93,2],[3,310,203,114,96,3],[10,115,188,140,117,10],[4,416,267,99,70,4],[5,218,239,116,111,5],[2,480,297,130,93,2],[4,326,312,99,70,4],[5,398,329,116,111,5]]},
+{b:9,w:2,pts:1434,u:[[4,326,132,99,70,4],[7,128,103,142,95,7],[11,413,178,112,69,11],[11,233,178,112,69,11],[3,40,158,114,96,3],[11,503,223,112,69,11],[8,323,141,116,149,8],[7,128,193,142,95,7],[3,400,248,114,96,3],[4,236,267,99,70,4],[3,490,293,114,96,3],[1,332,297,77,78,1],[1,422,342,77,78,1]]},
+{b:9,w:3,pts:1816,u:[[2,300,117,130,93,2],[10,115,98,140,117,10],[1,422,162,77,78,1],[3,220,158,114,96,3],[4,56,177,99,70,4],[11,503,223,112,69,11],[11,323,223,112,69,11],[7,128,193,142,95,7],[2,390,252,130,93,2],[7,218,238,142,95,7],[11,503,313,112,69,11],[4,326,312,99,70,4],[3,400,338,114,96,3]]},
+{b:9,w:4,pts:2520,u:[[4,326,132,99,70,4],[2,120,117,130,93,2],[6,409,161,112,83,16],[3,220,158,114,96,3],[8,53,96,116,149,8],[11,503,223,112,69,11],[9,291,202,134,105,9],[6,139,206,112,83,6],[3,400,248,114,96,3],[1,242,252,77,78,1],[4,507,312,99,70,4],[1,332,297,77,78,1],[3,400,338,114,96,3]]},
+{b:10,w:1,pts:770,u:[[11,323,133,112,69,11],[6,139,116,112,83,6],[11,413,178,112,69,11],[7,218,148,142,95,7],[1,62,162,77,78,1],[8,503,141,116,149,8],[12,318,206,85,80,13],[9,111,202,134,105,9],[11,413,268,112,69,11],[7,218,238,142,95,7],[11,503,313,112,69,11],[13,313,273,106,112,15],[1,422,342,77,78,1]]},
+{b:10,w:2,pts:1176,u:[[2,300,117,130,93,2],[11,143,133,112,69,11],[6,409,161,112,83,6],[9,201,157,134,105,9],[10,25,143,140,117,10],[11,503,223,112,69,11],[11,323,223,112,69,11],[5,128,194,116,111,5],[10,385,233,140,117,10],[8,233,186,116,149,8],[1,512,297,77,78,1],[7,308,283,142,95,7],[0,401,343,108,87,0]]},
+{b:10,w:3,pts:1592,u:[[8,323,51,116,149,8],[10,115,98,140,117,10],[1,422,162,77,78,1],[2,210,162,130,93,2],[5,38,149,116,111,5],[0,491,208,108,87,0],[1,332,207,77,78,1],[7,128,193,142,95,7],[9,381,247,134,105,9],[11,233,268,112,69,11],[12,498,296,85,80,13],[12,318,296,85,80,13],[7,398,328,142,95,7]]},
+{b:10,w:4,pts:2803,u:[[11,323,133,112,69,11],[7,128,103,142,95,7],[6,409,161,112,83,16],[1,242,162,77,78,1],[1,62,162,77,78,1],[7,489,193,142,95,7],[1,332,207,77,78,1],[3,130,203,114,96,3],[4,416,267,99,70,4],[7,218,238,142,95,7],[2,480,297,130,93,2],[7,308,283,142,95,7],[2,390,342,130,93,2]]},
+{b:10,w:5,pts:3598,u:[[11,323,133,112,69,11],[1,152,117,77,78,1],[1,422,162,77,78,1],[6,229,161,112,83,16],[7,38,148,142,95,7],[2,480,207,130,93,2],[1,332,207,77,78,1],[9,111,202,134,105,9],[1,422,252,77,78,1],[5,218,239,116,111,12],[7,489,283,142,95,7],[7,308,283,142,95,7],[1,422,342,77,78,1]]}
+];
+
+
+const CROP = { x: 0, y: 40, w: 643, h: 415 };
+const CHAL_P = 0.10;
+const byKey = {};
+WAVES.forEach(w => { byKey[w.b + '-' + w.w] = w; });
+const fmt = n => Math.round(n).toLocaleString('en-US');
+
+const state = { mode: 'draw', picks: [3, 7, 1, 10], chal: true, roll: null };
+
+function pct(v) { return (v * 100).toFixed(3) + '%'; }
+function waveEl(wave) {
+  const el = document.createElement('div');
+  el.className = 'wave';
+  const map = document.createElement('img');
+  map.src = 'img/BattleMapCityEnemy.png'; map.alt = '';
+  map.style.left = '0'; map.style.top = pct(-CROP.y / CROP.h); map.style.width = '100%';
+  el.appendChild(map);
+  wave.u.forEach(([ic, x, y, w, , t]) => {
+    const im = document.createElement('img');
+    im.src = 'img/' + ICONS[ic]; im.alt = ''; im.title = TITLES[t];
+    im.style.left = pct((x - CROP.x) / CROP.w);
+    im.style.top = pct((y - CROP.y) / CROP.h);
+    im.style.width = pct(w / CROP.w);
+    el.appendChild(im);
+  });
+  return el;
+}
+function chip(text) { const c = document.createElement('span'); c.className = 'chip'; c.textContent = text; return c; }
+
+function buildPool() {
+  const pool = document.getElementById('pool');
+  pool.innerHTML = '';
+  const heads = ['Wave 1', 'Wave 2', 'Wave 3', 'Wave 4'];
+  pool.appendChild(document.createElement('div'));
+  heads.forEach((h, i) => {
+    const d = document.createElement('div'); d.className = 'colhead';
+    d.innerHTML = h + '<small>1 in 10</small>'; pool.appendChild(d);
+  });
+  const ch = document.createElement('div'); ch.className = 'colhead hot';
+  ch.innerHTML = 'Challenge<small>10% chance</small>'; pool.appendChild(ch);
+
+  for (let b = 1; b <= 10; b++) {
+    const lab = document.createElement('div'); lab.className = 'rowlab'; lab.textContent = 'B' + b; pool.appendChild(lab);
+    for (let s = 1; s <= 5; s++) {
+      const wave = byKey[b + '-' + s];
+      if (!wave) { const e = document.createElement('div'); e.className = 'empty'; e.textContent = '–'; pool.appendChild(e); continue; }
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'cell' + (s === 5 ? ' hot' : '');
+      btn.dataset.b = b; btn.dataset.s = s; btn.id = 'cell-' + b + '-' + s;
+      btn.setAttribute('aria-label', 'Battle ' + b + ', ' + (s === 5 ? 'challenge wave' : 'wave ' + s) + ', ' + wave.pts + ' points');
+      btn.appendChild(waveEl(wave));
+      btn.appendChild(chip(fmt(wave.pts)));
+      btn.addEventListener('click', () => pick(b, s));
+      pool.appendChild(btn);
+    }
+  }
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'path'); svg.id = 'path';
+  pool.appendChild(svg);
+}
+
+function pick(b, s) {
+  if (s === 5) { state.chal = !state.chal; state.roll = null; }
+  else if (state.mode === 'fixed') { state.picks = [b, b, b, b]; state.chal = b === 10; state.roll = null; }
+  else { state.picks[s - 1] = b; }
+  render();
+}
+
+function draw() {
+  if (state.mode === 'fixed') {
+    const b = 1 + Math.floor(Math.random() * 10);
+    state.picks = [b, b, b, b]; state.chal = b === 10; state.roll = null;
+  } else {
+    state.picks = [0, 0, 0, 0].map(() => 1 + Math.floor(Math.random() * 10));
+    const r = Math.random(); state.roll = r; state.chal = r < CHAL_P;
+  }
+  render();
+}
+
+function setMode(m) {
+  state.mode = m;
+  if (m === 'fixed') { const b = state.picks[0]; state.picks = [b, b, b, b]; state.chal = b === 10; state.roll = null; }
+  render();
+}
+
+function drawnWaves() {
+  const list = state.picks.map((b, i) => byKey[b + '-' + (i + 1)]);
+  if (state.chal) list.push(byKey['10-5']);
+  return list;
+}
+
+function renderPath() {
+  const pool = document.getElementById('pool'), svg = document.getElementById('path');
+  const pr = pool.getBoundingClientRect();
+  svg.setAttribute('viewBox', '0 0 ' + pr.width + ' ' + pr.height);
+  const pts = [];
+  state.picks.forEach((b, i) => pts.push(document.getElementById('cell-' + b + '-' + (i + 1))));
+  const centers = pts.map(c => { const r = c.getBoundingClientRect(); return [r.left - pr.left + r.width / 2, r.top - pr.top + r.height / 2]; });
+  const style = getComputedStyle(document.documentElement);
+  const pick = style.getPropertyValue('--pick').trim(), hot = style.getPropertyValue('--hot').trim();
+  let html = '<polyline points="' + centers.map(c => c.join(',')).join(' ') + '" fill="none" stroke="' + pick + '" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" stroke-opacity=".9"/>';
+  centers.forEach(c => { html += '<circle cx="' + c[0] + '" cy="' + c[1] + '" r="6" fill="' + pick + '" stroke="#fff" stroke-width="2"/>'; });
+  if (state.chal) {
+    const c5 = document.getElementById('cell-10-5').getBoundingClientRect();
+    const end = [c5.left - pr.left + c5.width / 2, c5.top - pr.top + c5.height / 2];
+    const last = centers[3];
+    html += '<polyline points="' + last.join(',') + ' ' + end.join(',') + '" fill="none" stroke="' + hot + '" stroke-width="3" stroke-dasharray="7 6" stroke-linecap="round"/>';
+    html += '<circle cx="' + end[0] + '" cy="' + end[1] + '" r="6" fill="' + hot + '" stroke="#fff" stroke-width="2"/>';
+  }
+  svg.innerHTML = html;
+}
+
+function unitSummary(wave) {
+  const counts = {};
+  wave.u.forEach(u => { const n = TITLES[u[5]].replace(/ \(Level \d+\)/, ''); counts[n] = (counts[n] || 0) + 1; });
+  return Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([n, c]) => c + '× ' + n).join(', ');
+}
+
+function render() {
+  document.getElementById('m-fixed').setAttribute('aria-pressed', state.mode === 'fixed');
+  document.getElementById('m-draw').setAttribute('aria-pressed', state.mode === 'draw');
+  document.querySelectorAll('.cell').forEach(c => {
+    const b = +c.dataset.b, s = +c.dataset.s;
+    c.setAttribute('aria-pressed', s === 5 ? (state.chal) : state.picks[s - 1] === b);
+  });
+  const roll = document.getElementById('roll');
+  if (state.mode === 'fixed') roll.innerHTML = 'Fixed: one battle, all its waves';
+  else roll.innerHTML = state.chal ? '<b class="yes">challenge wave added</b>' : '<b>no challenge wave</b>';
+
+  const dr = document.getElementById('draw'); dr.innerHTML = '';
+  let total = 0;
+  const list = drawnWaves();
+  list.forEach((wave, i) => {
+    const hot = wave.w === 5;
+    const slot = document.createElement('div'); slot.className = 'slot' + (hot ? ' hot' : '');
+    const head = document.createElement('header');
+    head.innerHTML = '<h3>' + (hot ? 'Challenge wave' : 'Wave ' + (i + 1)) + '</h3><span class="from">Battle ' + wave.b + (hot ? '' : ' · wave ' + wave.w) + '</span>';
+    slot.appendChild(head);
+    const w = waveEl(wave); w.appendChild(chip(fmt(wave.pts) + ' pts')); w.lastChild.style.cssText = 'position:absolute;right:6px;bottom:6px';
+    slot.appendChild(w);
+    const u = document.createElement('p'); u.className = 'units'; u.textContent = unitSummary(wave); slot.appendChild(u);
+    dr.appendChild(slot);
+    total += wave.pts;
+  });
+  if (!state.chal) {
+    const slot = document.createElement('div'); slot.className = 'slot off hot';
+    slot.innerHTML = '<header><h3>Challenge wave</h3><span class="from">not drawn</span></header>';
+    const ph = document.createElement('div'); ph.className = 'wave'; slot.appendChild(ph);
+    const n = document.createElement('p'); n.className = 'offnote'; n.textContent = '9 in 10 formations end after wave 4.'; slot.appendChild(n);
+    dr.appendChild(slot);
+  }
+  document.getElementById('total').innerHTML = '<b>' + fmt(total) + '</b><span>points over ' + list.length + ' waves · ' + list.reduce((a, w) => a + w.u.length, 0) + ' enemy units</span>';
+  requestAnimationFrame(renderPath);
+}
+
+function stats() {
+  let drawn = 0;
+  for (let s = 1; s <= 4; s++) { let sum = 0; for (let b = 1; b <= 10; b++) sum += byKey[b + '-' + s].pts; drawn += sum / 10; }
+  const chal = byKey['10-5'].pts;
+  const expected = drawn + CHAL_P * chal;
+  let fixed = 0; for (let b = 1; b <= 10; b++) { for (let s = 1; s <= 5; s++) { const w = byKey[b + '-' + s]; if (w) fixed += w.pts; } } fixed /= 10;
+  document.getElementById('n-chal').textContent = fmt(chal);
+  document.getElementById('n-exp').textContent = fmt(expected);
+  document.getElementById('n-exp-p').textContent = 'Average points per formation: ' + fmt(drawn) + ' from four drawn waves plus 10% of ' + fmt(chal) + '. The ten fixed battles average ' + fmt(fixed) + ', so the mean is the same and the spread is not.';
+}
+
+document.getElementById('m-fixed').addEventListener('click', () => setMode('fixed'));
+document.getElementById('m-draw').addEventListener('click', () => setMode('draw'));
+document.getElementById('go').addEventListener('click', draw);
+window.addEventListener('resize', () => requestAnimationFrame(renderPath));
+buildPool(); render();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => requestAnimationFrame(renderPath));
+window.addEventListener('load', () => requestAnimationFrame(renderPath));
+</script>
