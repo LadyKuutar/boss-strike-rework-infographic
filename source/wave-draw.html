@@ -74,7 +74,7 @@ button:focus-visible { outline: 3px solid var(--pick); outline-offset: 2px; }
 .cell:hover { opacity: 1; }
 .cell[aria-pressed="true"] { opacity: 1; border-color: var(--pick); }
 .cell.hot[aria-pressed="true"] { border-color: var(--hot); }
-.cell .chip { position: absolute; right: 4px; bottom: 4px; }
+.cell .chip { position: absolute; left: 4px; bottom: 4px; }
 .empty { border: 1px dashed var(--line); border-radius: 6px; display: grid; place-items: center; color: var(--muted); font-family: var(--f-mono); font-size: 12px; min-height: 40px; }
 .path { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
 
@@ -114,12 +114,12 @@ footer a { color: inherit; }
   .hero { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) { .cell { transition: none; } }
-.compare { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); } .crow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); } .crow + .crow { border-top: 1px solid var(--line); } .side { padding: 22px 24px; display: flex; flex-direction: column; gap: 6px; min-width: 0; } .side.after { border-left: 1px solid var(--line); } .side .tag { font-family: var(--f-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); } .side.after .tag { color: var(--pick); } .side b { font-family: var(--f-display); font-size: 64px; line-height: 1; font-variant-numeric: tabular-nums; } .side.after b { color: var(--pick); } .side .unit { color: var(--muted); } .side p { max-width: 56ch; } .side p.big { font-family: var(--f-display); font-size: 30px; line-height: 1.1; text-transform: uppercase; letter-spacing: .02em; color: var(--muted); } .byline { margin-top: 14px; font-family: var(--f-mono); font-size: 13px; color: var(--muted); } .byline b { color: var(--ink); font-weight: 500; } .source { margin-top: -28px; font-size: 14px; color: var(--ink); } @media (max-width: 760px) { .crow { grid-template-columns: minmax(0, 1fr); } .side.after { border-left: 0; border-top: 1px solid var(--line); } }.crow.head .side { padding-block: 12px; } .crow.head .tag { font-size: 14px; } @media (max-width: 760px) { .crow.head { display: none; } .side + .side.after { border-top: 1px solid var(--line); } .crow:not(.head) .side:not(.after)::before { content: "Before"; font-family: var(--f-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); } .crow:not(.head) .side.after::before { content: "After"; font-family: var(--f-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--pick); } }.hl { color: var(--pick); font-weight: 600; background: color-mix(in srgb, var(--pick) 16%, transparent); padding: 1px 5px; border-radius: 3px; } .side p.callout { margin-top: 10px; color: var(--hot); font-family: var(--f-display); font-size: 26px; line-height: 1.1; text-transform: uppercase; letter-spacing: .02em; font-weight: 700; }.byline { margin-top: 6px; }.lede strong { color: var(--ink); font-weight: 600; } .lede strong em { font-style: normal; color: var(--pick); }.rework { display: flex; flex-direction: column; gap: 36px; } .rework > h2 { margin-bottom: 0; padding-top: 22px; border-top: 1px solid var(--line); } h3.sub { font-size: 26px; margin-bottom: 14px; } .rework .hero { align-items: start; } .rework .lede { margin: 0; }.pagehead h1 { font-size: clamp(44px, 8vw, 88px); margin-block: 10px 0; } .pagehead h1 em { font-style: normal; color: var(--pick); }.source { margin-top: 0; }</style>
+.compare { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); } .crow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); } .crow + .crow { border-top: 1px solid var(--line); } .side { padding: 22px 24px; display: flex; flex-direction: column; gap: 6px; min-width: 0; } .side.after { border-left: 1px solid var(--line); } .side .tag { font-family: var(--f-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); } .side.after .tag { color: var(--pick); } .side b { font-family: var(--f-display); font-size: 64px; line-height: 1; font-variant-numeric: tabular-nums; } .side.after b { color: var(--pick); } .side .unit { color: var(--muted); } .side p { max-width: 56ch; } .side p.big { font-family: var(--f-display); font-size: 30px; line-height: 1.1; text-transform: uppercase; letter-spacing: .02em; color: var(--muted); } .byline { margin-top: 14px; font-family: var(--f-mono); font-size: 13px; color: var(--muted); } .byline b { color: var(--ink); font-weight: 500; } .source { margin-top: -28px; font-size: 14px; color: var(--ink); } @media (max-width: 760px) { .crow { grid-template-columns: minmax(0, 1fr); } .side.after { border-left: 0; border-top: 1px solid var(--line); } }.crow.head .side { padding-block: 12px; } .crow.head .tag { font-size: 14px; } @media (max-width: 760px) { .crow.head { display: none; } .side + .side.after { border-top: 1px solid var(--line); } .crow:not(.head) .side:not(.after)::before { content: "Before"; font-family: var(--f-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); } .crow:not(.head) .side.after::before { content: "After"; font-family: var(--f-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--pick); } }.hl { color: var(--pick); font-weight: 600; background: color-mix(in srgb, var(--pick) 16%, transparent); padding: 1px 5px; border-radius: 3px; } .side p.callout { margin-top: 10px; color: var(--hot); font-family: var(--f-display); font-size: 26px; line-height: 1.1; text-transform: uppercase; letter-spacing: .02em; font-weight: 700; }.byline { margin-top: 6px; }.lede strong { color: var(--ink); font-weight: 600; } .lede strong em { font-style: normal; color: var(--pick); }.rework { display: flex; flex-direction: column; gap: 36px; } .rework > h2 { margin-bottom: 0; padding-top: 22px; border-top: 1px solid var(--line); } h3.sub { font-size: 26px; margin-bottom: 14px; } .rework .hero { align-items: start; } .rework .lede { margin: 0; }.pagehead h1 { font-size: clamp(44px, 8vw, 88px); margin-block: 10px 0; } .pagehead h1 em { font-style: normal; color: var(--pick); }.source { margin-top: 0; }.rule div { grid-template-columns: 120px minmax(0, 1fr); align-items: start; } .rule b { font-size: 40px; white-space: nowrap; } .rule span i { display: block; font-style: normal; font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; } .rule .hot span i { color: var(--hot); } @media (max-width: 760px) { .rule div { grid-template-columns: 100px minmax(0, 1fr); } }.rule div { grid-template-columns: 150px minmax(0, 1fr); } .rule b { font-size: 36px; } @media (max-width: 760px) { .rule div { grid-template-columns: 124px minmax(0, 1fr); } .rule b { font-size: 30px; } }.side b { font-size: 44px; }.hl { -webkit-box-decoration-break: clone; box-decoration-break: clone; } .hl.hot { color: var(--hot); background: color-mix(in srgb, var(--hot) 16%, transparent); } .side p.after-p { margin-top: 10px; line-height: 1.7; }.hl { white-space: nowrap; }.source a{color:var(--pick);text-decoration:underline;text-underline-offset:2px}.source a:hover{opacity:.8}</style>
 
 <main class="page">
   <header class="pagehead">
-      <div class="eyebrow">Boss Strike 3 (Legacy BS 15) · Infected Troops · levels 61-65</div>
-      <p class="byline">By <b>[HSC] MaxSally</b></p>
+      <div class="eyebrow">Boss Strike 3 (Legacy BS 15) · Infected · levels 61-65</div>
+      <p class="byline">By <b>MaxSally</b></p>
       <h1>Boss Strike <em>Rework</em></h1>
     </header>
 
@@ -133,7 +133,7 @@ footer a { color: inherit; }
       </div>
       <div class="crow">
         <div class="side"><p class="big">No daily boosted values</p></div>
-        <div class="side after"><p>Players can select <span class="hl">10 battles each day</span> to receive boosted values. Each battle can be boosted to <span class="hl">×3 values</span>. Before each battle, player can view all the waves and toggle whether the boost should apply.</p><p class="callout">A formation with the challenge wave can be worth almost 30,000 points.</p></div>
+        <div class="side after"><p>Players can select <span class="hl">10 battles each day</span> to receive boosted values. Each battle can be boosted to <span class="hl">×3 points</span>. Before each battle, player can view all the waves and toggle whether the boost should apply.</p><p class="after-p">A formation with the challenge wave can be worth <span class="hl hot">about 30,000 points</span>. If players do 10 challenge battles each day with boosted values, they can earn <span class="hl">about 1.2M points</span> just from 40 battles.</p></div>
       </div>
     </div>
   </section>
@@ -141,12 +141,11 @@ footer a { color: inherit; }
   <section class="rework">
     <h2>Formation Rework</h2>
     <div class="hero">
-      <div><p class="lede"><strong>Every wave is <em>drawn</em>, not scripted.</strong> A formation used to be one of ten fixed battles, played from start to finish. Now, it is built wave by wave, so wave 2 of one battle can follow wave 1 of another.</p></div>
+      <div><p class="lede"><strong>Every wave is <em>drawn</em>, not scripted.</strong> A formation used to be one of ten fixed battles. Now, it is built wave by wave, so wave 2 of one battle can follow wave 1 of another.</p></div>
       <div class="rule">
-      <div><b>×4</b><span>Waves 1 to 4 are each drawn from <strong>all 10 battles' matching wave</strong>, independently and uniformly.</span></div>
-      <div class="hot"><b>10%</b><span>Chance of a <strong>fifth, challenge wave</strong> appeared after wave 4. Only 1 challenge wave in Battle 10 to sample from.</span></div>
-    </div>
-    </div>
+        <div><b>Wave 1-4</b><span>Each wave is drawn from the <strong>matching wave of all 10 battles</strong>, independently and uniformly.</span></div>
+        <div class="hot"><b>Wave 5</b><span><i>Challenge wave · 10% chance</i>Chance of a <strong>fifth, challenge wave</strong> appeared after wave 4. Only 1 challenge wave in Battle 10 to sample from.</span></div>
+      </div></div>
 
   <div>
     <h3 class="sub">The pool</h3>
@@ -165,12 +164,12 @@ footer a { color: inherit; }
   </div>
 
   <div>
-    <h3 class="sub">Formation fought</h3>
+    <h3 class="sub">Sampled Formation</h3>
     <div class="draw" id="draw"></div>
     <div class="total" id="total"></div>
   </div>
   </section>
-  <footer class="source">Formations and points values were obtained from Battle Nations Mirahaze wiki. All details are subject to change.</footer>
+  <footer class="source">Formations and points values were obtained from <a href="https://battlenations.miraheze.org/wiki/(Legacy)_Boss_Strike_15:_Infected_Troops/Level_61-65_tier_6-10_battles" target="_blank" rel="noopener">Battle Nations wiki</a>. All details are subject to change.</footer>
 </main>
 
 <script>
@@ -358,9 +357,8 @@ function render() {
     const head = document.createElement('header');
     head.innerHTML = '<h3>' + (hot ? 'Challenge wave' : 'Wave ' + (i + 1)) + '</h3><span class="from">Battle ' + wave.b + (hot ? '' : ' · wave ' + wave.w) + '</span>';
     slot.appendChild(head);
-    const w = waveEl(wave); w.appendChild(chip(fmt(wave.pts) + ' pts')); w.lastChild.style.cssText = 'position:absolute;right:6px;bottom:6px';
+    const w = waveEl(wave); w.appendChild(chip(fmt(wave.pts) + ' pts')); w.lastChild.style.cssText = 'position:absolute;left:6px;bottom:6px';
     slot.appendChild(w);
-    const u = document.createElement('p'); u.className = 'units'; u.textContent = unitSummary(wave); slot.appendChild(u);
     dr.appendChild(slot);
     total += wave.pts;
   });
